@@ -10,6 +10,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using CoreMovie.Data;
+using CoreMovie.Models;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace CoreMovie
 {
@@ -25,10 +27,28 @@ namespace CoreMovie
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddRazorPages();
+            //services.AddRazorPages();
+            services.AddMvc().AddRazorPagesOptions(options =>
+            {
+                //options.Conventions.AuthorizePage("/Pages/Account/Login");
+                options.Conventions.AddPageRoute("/Home/Index", "");
+                options.Conventions.AddPageRoute("/Movies/Create", "/Movies/Create");
+            });
 
             services.AddDbContext<CoreMovieContext>(options =>
                     options.UseSqlServer(Configuration.GetConnectionString("CoreMovieContext")));
+
+            services.AddDbContext<UserContext>(options => 
+                    options.UseSqlServer(Configuration.GetConnectionString("CoreMovieContext")));
+            services.AddControllersWithViews();
+
+            //установка конфигурации подключения
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options => //CookieAuthenticationOptions
+                {
+                    options.LoginPath = new Microsoft.AspNetCore.Http.PathString("/Account/Login");
+                });
+            services.AddControllersWithViews();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -50,11 +70,14 @@ namespace CoreMovie
 
             app.UseRouting();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapRazorPages();
+                endpoints.MapControllerRoute(
+                    name: "default",
+                    pattern: "{controller=Home}/{action=Index}");
             });
         }
     }
